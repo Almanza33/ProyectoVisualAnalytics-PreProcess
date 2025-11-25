@@ -61,13 +61,44 @@ export function createStationMap(containerId, data, filters) {
     maxZoom: 18,
   }).addTo(map);
 
+  // Create marker cluster groups for industries
+  const distantCluster = L.markerClusterGroup({
+    maxClusterRadius: 50,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true,
+    iconCreateFunction: function (cluster) {
+      const count = cluster.getChildCount();
+      return L.divIcon({
+        html: `<div style="background-color: #FF6B35; opacity: 0.8;"><span>${count}</span></div>`,
+        className: "marker-cluster marker-cluster-medium",
+        iconSize: L.point(40, 40),
+      });
+    },
+  });
+
+  const nearbyCluster = L.markerClusterGroup({
+    maxClusterRadius: 50,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true,
+    iconCreateFunction: function (cluster) {
+      const count = cluster.getChildCount();
+      return L.divIcon({
+        html: `<div style="background-color: #00D084; opacity: 0.8;"><span>${count}</span></div>`,
+        className: "marker-cluster marker-cluster-medium",
+        iconSize: L.point(40, 40),
+      });
+    },
+  });
+
   // Add distant industries (orange triangles - larger and more visible)
   industriasConDistancia
     .filter((d) => !d.cercana)
     .forEach((d) => {
-      const triangleIcon = L.divIcon({
+      const squareIcon = L.divIcon({
         html: `<svg width="24" height="24" viewBox="0 0 24 24">
-                     <path d="M12,3 L21,20 L3,20 Z" 
+                     <path d="M3,3 L21,3 L12,21 Z" 
                            fill="#FF6B35" 
                            stroke="#000000" 
                            stroke-width="1.5"
@@ -75,12 +106,12 @@ export function createStationMap(containerId, data, filters) {
                    </svg>`,
         className: "",
         iconSize: [24, 24],
-        iconAnchor: [12, 18],
+        iconAnchor: [12, 12],
       });
 
       const marker = L.marker([d.latitude, d.longitude], {
-        icon: triangleIcon,
-      }).addTo(map);
+        icon: squareIcon,
+      });
 
       marker.bindPopup(`
             <b>${d.IDExpediente}</b><br/>
@@ -93,15 +124,17 @@ export function createStationMap(containerId, data, filters) {
             <b>Cuenca:</b> ${d.Cuenca}<br/>
             <b>Distancia:</b> ${d.distancia.toFixed(2)} km
         `);
+
+      distantCluster.addLayer(marker);
     });
 
   // Add nearby industries (green triangles - larger and more visible)
   industriasConDistancia
     .filter((d) => d.cercana)
     .forEach((d) => {
-      const triangleIcon = L.divIcon({
+      const squareIcon = L.divIcon({
         html: `<svg width="24" height="24" viewBox="0 0 24 24">
-                     <path d="M12,3 L21,20 L3,20 Z" 
+                     <path d="M3,3 L21,3 L12,21 Z" 
                            fill="#00D084" 
                            stroke="#000000" 
                            stroke-width="1.5"
@@ -109,12 +142,12 @@ export function createStationMap(containerId, data, filters) {
                    </svg>`,
         className: "",
         iconSize: [24, 24],
-        iconAnchor: [12, 18],
+        iconAnchor: [12, 12],
       });
 
       const marker = L.marker([d.latitude, d.longitude], {
-        icon: triangleIcon,
-      }).addTo(map);
+        icon: squareIcon,
+      });
 
       marker.bindPopup(`
             <b>${d.IDExpediente}</b><br/>
@@ -127,7 +160,13 @@ export function createStationMap(containerId, data, filters) {
             <b>Cuenca:</b> ${d.Cuenca}<br/>
             <b>Distancia:</b> ${d.distancia.toFixed(2)} km
         `);
+
+      nearbyCluster.addLayer(marker);
     });
+
+  // Add cluster groups to map
+  map.addLayer(distantCluster);
+  map.addLayer(nearbyCluster);
 
   // Note: Station marker will be added LAST (after legend) to ensure it's on top
 

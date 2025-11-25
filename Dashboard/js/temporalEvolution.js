@@ -56,9 +56,21 @@ export function createTemporalEvolution(containerId, data, filters) {
   // Color scale
   const color = d3.scaleOrdinal().domain(pollutants).range(d3.schemeCategory10);
 
-  // Line generator
+  // Line generator with defined function to break lines for non-consecutive days
   const line = d3
     .line()
+    .defined((d, i, data) => {
+      // A point is defined if there's a consecutive day after it (or it's the last point)
+      if (i === data.length - 1) return true; // Last point is always defined
+
+      // Check if next day is consecutive (difference of 1 day)
+      const nextDate = data[i + 1].date;
+      const currentDate = d.date;
+      const dayDiff = Math.abs(
+        (nextDate - currentDate) / (1000 * 60 * 60 * 24)
+      );
+      return dayDiff <= 1.5; // Allow up to 1.5 days to account for potential time differences
+    })
     .x((d) => x(d.date))
     .y((d) => y(d.avg_value))
     .curve(d3.curveMonotoneX);

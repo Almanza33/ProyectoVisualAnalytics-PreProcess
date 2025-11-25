@@ -49,25 +49,45 @@ export function createIntegratedMap(containerId, data, filters) {
     "En Trámite": "#2c3e50",
   };
 
-  // Add industries (triangles) - rendered FIRST so stations appear on top
+  // Create marker cluster group for industries
+  const industriesCluster = L.markerClusterGroup({
+    maxClusterRadius: 50,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true,
+    iconCreateFunction: function (cluster) {
+      const count = cluster.getChildCount();
+      let size = "small";
+      if (count > 50) size = "large";
+      else if (count > 20) size = "medium";
+
+      return L.divIcon({
+        html: `<div><span>${count}</span></div>`,
+        className: `marker-cluster marker-cluster-${size}`,
+        iconSize: L.point(40, 40),
+      });
+    },
+  });
+
+  // Add industries (triangles) to cluster group
   filteredIndustrias.forEach((d) => {
     const triangleIcon = L.divIcon({
       html: `<svg width="20" height="20" viewBox="0 0 20 20">
-                     <path d="M10,2 L18,18 L2,18 Z" 
-                           fill="${colorMapEstado[d.Estado] || "#95a5a6"}" 
-                           stroke="#000000" 
-                           stroke-width="1.2"
-                           opacity="0.8"/>
+                     <polygon points="10,18 18,2 2,2" 
+                              fill="${colorMapEstado[d.Estado] || "#95a5a6"}" 
+                              stroke="#000000" 
+                              stroke-width="1.2"
+                              opacity="0.8"/>
                    </svg>`,
       className: "",
       iconSize: [20, 20],
-      iconAnchor: [10, 15],
+      iconAnchor: [10, 10],
     });
 
     const marker = L.marker([d.latitude, d.longitude], {
       icon: triangleIcon,
       zIndexOffset: -1000, // Place industries below stations
-    }).addTo(map);
+    });
 
     marker.bindPopup(`
             <b>${d.IDExpediente}</b><br/>
@@ -81,7 +101,12 @@ export function createIntegratedMap(containerId, data, filters) {
             <b>Estación cercana 1:</b> ${d.estacion_cercana_1} (${d.distancia_cercana_1} km)<br/>
             <b>Estación cercana 2:</b> ${d.estacion_cercana_2} (${d.distancia_cercana_2} km)
         `);
+
+    industriesCluster.addLayer(marker);
   });
+
+  // Add cluster group to map
+  map.addLayer(industriesCluster);
 
   // Add stations (circles with color by pollutant level)
   estaciones.forEach((d) => {

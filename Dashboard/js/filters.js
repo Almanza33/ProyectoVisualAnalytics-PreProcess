@@ -34,22 +34,38 @@ export class FilterManager {
     document.getElementById("filter-estado").value = "Seguimiento y Control";
 
     // Populate Tipo Combustible filter
-    const combustibles = [...new Set(industrias.map((d) => d.TipoCombustible))]
+    const combustiblesOriginal = [
+      ...new Set(industrias.map((d) => d.TipoCombustible)),
+    ]
       .filter(Boolean)
+      .filter((v) => v !== "(sin definir)")
       .sort();
-    this.populateSelect("filter-combustible", combustibles);
+    const combustiblesFormatted = combustiblesOriginal.map((v) =>
+      this.formatOption(v)
+    );
+    this.populateSelect(
+      "filter-combustible",
+      combustiblesFormatted,
+      combustiblesOriginal
+    );
 
     // Populate Tipo Fuente Emisión filter
-    const fuentes = [...new Set(industrias.map((d) => d.TipoFuenteEmision))]
+    const fuentesOriginal = [
+      ...new Set(industrias.map((d) => d.TipoFuenteEmision)),
+    ]
       .filter(Boolean)
+      .filter((v) => v !== "(sin definir)")
       .sort();
-    this.populateSelect("filter-fuente", fuentes);
+    const fuentesFormatted = fuentesOriginal.map((v) => this.formatOption(v));
+    this.populateSelect("filter-fuente", fuentesFormatted, fuentesOriginal);
 
     // Populate Cuenca filter
-    const cuencas = [...new Set(industrias.map((d) => d.Cuenca))]
+    const cuencasOriginal = [...new Set(industrias.map((d) => d.Cuenca))]
       .filter(Boolean)
+      .filter((v) => v !== "(sin definir)")
       .sort();
-    this.populateSelect("filter-cuenca", cuencas);
+    const cuencasFormatted = cuencasOriginal.map((v) => this.formatOption(v));
+    this.populateSelect("filter-cuenca", cuencasFormatted, cuencasOriginal);
 
     // Populate Station filter
     const stations = [...new Set(estaciones.map((d) => d.station_id))]
@@ -69,11 +85,15 @@ export class FilterManager {
     this.setupEventListeners();
   }
 
-  populateSelect(elementId, options) {
+  populateSelect(elementId, options, originalValues) {
     const select = document.getElementById(elementId);
     const currentOptions = select.innerHTML;
     const newOptions = options
-      .map((opt) => `<option value="${opt}">${opt}</option>`)
+      .map((opt, i) => {
+        // If originalValues provided, use it for value attribute
+        const value = originalValues ? originalValues[i] : opt;
+        return `<option value="${value}">${opt}</option>`;
+      })
       .join("");
     select.innerHTML = currentOptions + newOptions;
   }
@@ -147,5 +167,26 @@ export class FilterManager {
 
   notifyListeners(filterType) {
     this.listeners.forEach((callback) => callback(filterType));
+  }
+
+  // Helper to format option text: capitalize first letter, lowercase rest if all caps
+  formatOption(text) {
+    if (!text) return text;
+
+    // Check if the text is all uppercase (ignoring spaces and special chars)
+    const isAllCaps =
+      text.replace(/[^a-zA-Z]/g, "").toUpperCase() ===
+      text.replace(/[^a-zA-Z]/g, "");
+
+    if (isAllCaps && text.length > 1) {
+      // Convert to title case: first letter of each word capitalized
+      return text
+        .toLowerCase()
+        .split(" ")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+    }
+
+    return text;
   }
 }
